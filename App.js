@@ -4,20 +4,23 @@ import { MapView, Constants, Location, Permissions, SQLite } from 'expo';
 import ClueDescription from './components/ClueDescription';
 import ClueOverlay from './components/ClueOverlay';
 import CheckInButton from './components/CheckInButton';
-import db from './controllers/sqlLiteController';
+import clue from './controllers/clueModel';
 import StartButton from './components/StartButton'
 
 export default class App extends React.Component {
-  state = {
-    isGameStarted: false,
-    clue: '',
-    clueId: null,
-    clueLocation: null,
-    location: null,
-    errorMessage: null,
-    distance: 0,
-    cluesCompleted: 0
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      isGameStarted: false,
+      clue: 'WHAAATATAA',
+      clueId: null,
+      clueLocation: null,
+      location: null,
+      errorMessage: null,
+      distance: 0,
+      cluesCompleted: 0
+    }
+  }
 
   componentWillMount() {
     if (Platform.OS === 'android' && !Constants.isDevice) {
@@ -27,6 +30,7 @@ export default class App extends React.Component {
     } else {
       this._getLocationAsync();
       this._watchPositionAsync();
+      clue.populateCluesIfEmpty();
     }
   }
 
@@ -65,7 +69,7 @@ export default class App extends React.Component {
     let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     let distance = earthRadiusFeet * c;
     console.log(distance);
-    this.setState({distance});
+    this.setState({ distance });
     return distance;
   }
 
@@ -120,7 +124,7 @@ export default class App extends React.Component {
           if (result.rows.length) {
             let randIndex = Math.floor(Math.random() * result.rows.length);
 
-            if(this.state.cluesCompleted === 0)
+            if (this.state.cluesCompleted === 0)
               randIndex = 0;
 
             let record = result.rows.item(randIndex);
@@ -136,7 +140,7 @@ export default class App extends React.Component {
                 placename: record.place_name,
                 radius: record.radius
               }
-          });
+            });
           }
         }, (tx, err) => {
           console.log(err);
@@ -146,6 +150,8 @@ export default class App extends React.Component {
 
   _startPressed = () => {
     console.log('start pressed!');
+    // start game, assign random clue to state
+    
     if (!this._getSavedClue()) {
       this._getNewClue();
     }
@@ -163,7 +169,7 @@ export default class App extends React.Component {
       console.log('location found!');
       let completed = this.state.cluesCompleted;
       completed++;
-      this.setState({cluesCompleted: completed});
+      this.setState({ cluesCompleted: completed });
     }
     else {
       console.log('location not found!');
@@ -207,17 +213,17 @@ export default class App extends React.Component {
             />
           </MapView>
           {
-              this.state.isGameStarted &&
-              <CheckInButton style={styles.checkInButton} checkIn={this._checkInPressed}/>             
+            this.state.isGameStarted &&
+            <CheckInButton style={styles.checkInButton} checkIn={this._checkInPressed} />
           }
 
           {
-              this.state.isGameStarted ?
-                null :
-                <StartButton
-                  style={styles.startButton}
-                  startGame={this._startPressed}
-                />
+            this.state.isGameStarted ?
+              null :
+              <StartButton
+                style={styles.startButton}
+                startGame={this._startPressed}
+              />
           }
           {
             this.state.isGameStarted &&
