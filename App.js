@@ -15,11 +15,11 @@ export default class App extends React.Component {
       isGameStarted: false,
       clue: 'WHAAATATAA',
       clueId: null,
-      clueLocation: null,
+      clueLocation: null, //long, lat, radius
       location: null,
       errorMessage: null,
-      distance: 0,
-      cluesCompleted: 0
+      distance: 0,//prop dont need
+      cluesCompleted: []
     }
   }
 
@@ -52,112 +52,55 @@ export default class App extends React.Component {
       });
   };
 
-  _distanceInFeetBetweenEarthCoordinates = (lat1, lon1, lat2, lon2) => {
-    let distance = Loc.calculateDistanceInFeetBetweenCoordinates(lat1,lon1,lat2,lon2);
-    this.setState({ distance });
-    return distance;
-  }
-
-  _getSavedClue = () => {
-    console.log('getting saved clue');
-
-    // If user played before, continue where the user left off.
-    db.transaction(tx => {
-      tx.executeSql('select curr_clue from user;',
-        [],
-        (_, result) => {
-          if (result.rows.length) {
-            let clueId = result.rows.item(0);
-            db.transaction(getClueDescription => {
-              getClueDescription.executeSql(`select * from clue inner join on location where clue.location_id = location.id and clue.id = ?;`,
-                [clueId],
-                (_, description_Result) => {
-                  if (description_Result.rows.length) {
-                    let record = description_Result.rows.item(0);
-                    console.log(record);
-                    this.setState({
-                      isGameStarted: true,
-                      clue: record.description,
-                      clueId: clueId,
-                      clueLocation: {
-                        latitude: record.latitude,
-                        longitude: record.longitude,
-                        placename: record.place_name,
-                        radius: record.radius
-                      }
-                    });
-                  }
-                  return true;
-                });
-            });
-          }
-          else {
-            return false;
-          }
-        });
-    });
-  };
-
-  _getNewClue = () => {
-    console.log('getting new clue');
-    db.transaction(tx => {
-      tx.executeSql(`select *
-                     from clue inner join location on clue.location_id = location.id where completed = 0;`,
-        [],
-        (_, result) => {
-          console.log(result);
-          if (result.rows.length) {
-            let randIndex = Math.floor(Math.random() * result.rows.length);
-
-            if (this.state.cluesCompleted === 0)
-              randIndex = 0;
-
-            let record = result.rows.item(randIndex);
-            console.log(randIndex);
-            console.log(record);
-            this.setState({
-              isGameStarted: true,
-              clue: record.description,
-              clueId: record.id,
-              clueLocation: {
-                latitude: record.latitude,
-                longitude: record.longitude,
-                placename: record.place_name,
-                radius: record.radius
-              }
-            });
-          }
-        }, (tx, err) => {
-          console.log(err);
-        });
-    });
-  };
-
   _startPressed = () => {
     console.log('start pressed!');
     // start game, assign random clue to state
-    
-    if (!this._getSavedClue()) {
-      this._getNewClue();
-    }
-    this.setState({ isGameStarted: true });
+    clue.getRandomIncompletedClue()
+    .then((clue) => {
+      this.setState({
+        isGameStarted: true,
+        clue: clue.description,
+        clueId: clue.id,
+        clueLocation: {longitude: clue.long, latitude: clue.lat, radius: clue.radius},
+      })
+    })
   };
 
   _checkInPressed = () => {
     console.log('check in pressed!');
     this._getLocationAsync();
-    if (this._distanceInFeetBetweenEarthCoordinates(this.state.location.coords.latitude,
+    let distToClue = Loc.calculateDistanceInFeetBetweenCoordinates(
+      this.state.location.coords.latitude,
       this.state.location.coords.longitude,
       this.state.clueLocation.latitude,
-      this.state.clueLocation.longitude) <= this.state.clueLocation.radius) {
-      this._getNewClue();
-      console.log('location found!');
-      let completed = this.state.cluesCompleted;
-      completed++;
-      this.setState({ cluesCompleted: completed });
+      this.state.clueLocation.longitude);
+    console.log('location: ', this.state.location);
+    console.log('clueLocation', this.state.clueLocation);
+    console.log('distToClue: ',distToClue);
+    console.log('radius: ',this.state.clueLocation.radius);
+    if (distToClue <= this.state.clueLocation.radius) {
+      clue.setToComplete(this.state.clueId)
+      .then(()=>{ //can refactor later to NOT have .then in .then
+        clue.getRandomIncompletedClue()
+        .then((clue) => {
+          let newState = Object.assign({},this.state,{
+            isGameStarted: true,
+            clue: clue.description,
+            clueId: clue.id,
+            clueLocation: {longitude: clue.long, latitude: clue.lat, radius: clue.radius},
+            cluesCompleted: [
+              ...this.state.cluesCompleted,
+              clue
+            ]
+          });
+          console.log('newState: ',newState);
+          this.setState(newState);
+        })
+      });
+      setState({ cluesCompleted: completed });
     }
     else {
-      console.log('location not found!');
+      console.log('not in correct location!');
     }
   };
 

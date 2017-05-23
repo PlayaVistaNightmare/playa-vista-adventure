@@ -3,7 +3,7 @@ import Expo, { SQLite } from 'expo';
 import __ from 'lodash'
 let data = {};
 
-const db = SQLite.openDatabase('projectDB7');
+const db = SQLite.openDatabase('projectDB10');
 
 data.addClue = (clue) => {
     return new Promise((resolve, reject) => {
@@ -80,6 +80,7 @@ data.getRandomIncompletedClue = () => {
 // data.updateClue = () => { };
 // data.deleteClue = () => { };
 data.populateCluesIfEmpty = () => {
+    
     const createTable = `CREATE TABLE IF NOT EXISTS clues(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     description VARCHAR,
@@ -131,7 +132,7 @@ data.populateCluesIfEmpty = () => {
             long: -118.4222983,
             lat: 33.979500, 
             place_name: 'Codesmith HQ', 
-            radius: 80
+            radius: 300
         }
         return data.addClue(clue1)
     })
@@ -141,20 +142,20 @@ data.populateCluesIfEmpty = () => {
             long: -118.4182312,
             lat: 33.9767221, 
             place_name: 'Whole Foods', 
-            radius: 130
+            radius: 300
         }
         return data.addClue(clue1)
     })
-    .then(res => {
-        const clue1 = {
-            description: 'Desc 3',
-            long: -118.422547,
-            lat: 33.977925, 
-            place_name: '4hr zone', 
-            radius: 160
-        }
-        return data.addClue(clue1)
-    })
+    // .then(res => {
+    //     const clue1 = {
+    //         description: 'Desc 3',
+    //         long: -118.422547,
+    //         lat: 33.977925, 
+    //         place_name: '4hr zone', 
+    //         radius: 300
+    //     }
+    //     return data.addClue(clue1)
+    // })
     .then((res) => {
         return new Promise((resolve, reject) => {
         db.transaction(tx => {
