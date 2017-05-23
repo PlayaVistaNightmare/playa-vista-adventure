@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, Text, View, StatusBar } from 'react-native';
+import { Platform, StyleSheet, Text, View, StatusBar, AlertIOS, FlatList, Button } from 'react-native';
 import { MapView, Constants, Location, Permissions, SQLite } from 'expo';
 import ClueDescription from './components/ClueDescription';
 import ClueOverlay from './components/ClueOverlay';
@@ -13,14 +13,17 @@ export default class App extends React.Component {
     super(props);
     this.state = {
       isGameStarted: false,
-      clue: 'WHAAATATAA',
+      clue: null,
       clueId: null,
       clueLocation: null, //long, lat, radius
       location: null,
       errorMessage: null,
       distance: 0,//prop dont need
-      cluesCompleted: []
+      cluesCompleted: [],
+      viewingClues: false,
+      allCluesCount: 0
     }
+    this.toggleCluesList = this.toggleCluesList.bind(this)
   }
 
   componentWillMount() {
@@ -29,9 +32,23 @@ export default class App extends React.Component {
         errorMessage: 'Oops, this will not work on Sketch in an Android emulator. Try it on your device!',
       });
     } else {
+      console.log('componentWillMount')
       this._getLocationAsync();
       this._watchPositionAsync();
-      clue.populateCluesIfEmpty();
+      
+      clue.populateCluesIfEmpty()
+      .then(() => clue.getCompleted())
+      .then(clues => {
+          this.setState(Object.assign({}, this.state, {cluesCompleted: [
+            ...this.state.cluesCompleted,
+            ...clues
+          ]}))
+          console.log('Init state: ',this.state)
+          return clue.getAllClues()
+        })
+        .then((res) => {
+          this.setState({allCluesCount: res.length})
+        });
     }
   }
 
@@ -55,14 +72,23 @@ export default class App extends React.Component {
   _startPressed = () => {
     console.log('start pressed!');
     // start game, assign random clue to state
+    console.log('start press')
+    
     clue.getRandomIncompletedClue()
     .then((clue) => {
-      this.setState({
-        isGameStarted: true,
-        clue: clue.description,
-        clueId: clue.id,
-        clueLocation: {longitude: clue.long, latitude: clue.lat, radius: clue.radius},
-      })
+      if (!clue) {
+        AlertIOS.alert('Finished!', 'You\'re done')
+        console.log('Game Finished!')
+      } else {
+        console.log('setting new clue', clue)
+        this.setState({
+          isGameStarted: true,
+          clue: clue.description,
+          clueId: clue.id,
+          clueLocation: {longitude: clue.long, latitude: clue.lat, radius: clue.radius},
+          currentClue: clue
+        })
+      }
     })
   };
 
@@ -78,31 +104,49 @@ export default class App extends React.Component {
     console.log('clueLocation', this.state.clueLocation);
     console.log('distToClue: ',distToClue);
     console.log('radius: ',this.state.clueLocation.radius);
+
     if (distToClue <= this.state.clueLocation.radius) {
+      console.log('completing clueId: ', this.state.clueId)
       clue.setToComplete(this.state.clueId)
       .then(()=>{ //can refactor later to NOT have .then in .then
-        clue.getRandomIncompletedClue()
-        .then((clue) => {
+          console.log()
           let newState = Object.assign({},this.state,{
-            isGameStarted: true,
+            cluesCompleted: [
+              ...this.state.cluesCompleted,
+              this.state.currentClue
+            ]
+          });
+          this.setState(newState);
+        return clue.getRandomIncompletedClue()
+      })
+      .then((clue) => {
+        if (!clue) {
+          AlertIOS.alert('Finished!', 'You\'re done')
+        } else {
+          console.log('setting new clue', clue)
+          let newState = Object.assign({},this.state,{
             clue: clue.description,
             clueId: clue.id,
             clueLocation: {longitude: clue.long, latitude: clue.lat, radius: clue.radius},
-            cluesCompleted: [
-              ...this.state.cluesCompleted,
-              clue
-            ]
+            currentClue: clue
           });
+          AlertIOS.alert('Good Job!', 'Keep searching...')
           console.log('newState: ',newState);
           this.setState(newState);
-        })
-      });
-      setState({ cluesCompleted: completed });
+        }
+        });
     }
     else {
+      AlertIOS.alert('Bitch move...', 'Not in correct location!')
       console.log('not in correct location!');
     }
   };
+
+  toggleCluesList() {
+    this.setState(Object.assign({}, this.state, {
+      viewingClues: !this.state.viewingClues
+    }))
+  }
 
   render() {
     if (this.state.location == null) {
@@ -113,6 +157,18 @@ export default class App extends React.Component {
 
         <View style={styles.container}>
           <StatusBar hidden />
+          <Button
+            onPress={this.toggleCluesList}
+            title="Completed Clues"
+            color="#841584"
+          />
+          {
+              this.state.viewingClues && <FlatList 
+              style={styles.listView} 
+              data={this.state.cluesCompleted} 
+              keyExtractor={item => item.id}
+              renderItem={({item}) => <Text>{item.place_name}: {item.description}</Text>} />
+          }
           {/*<Text>TEST ----></Text>
           <Text>USER LAT: {this.state.location.coords.latitude}</Text>
           <Text>USER LONG: {this.state.location.coords.longitude}</Text>
@@ -144,6 +200,9 @@ export default class App extends React.Component {
             this.state.isGameStarted &&
             <CheckInButton style={styles.checkInButton} checkIn={this._checkInPressed} />
           }
+          {
+          
+          }
 
           {
             this.state.isGameStarted ?
@@ -155,7 +214,11 @@ export default class App extends React.Component {
           }
           {
             this.state.isGameStarted &&
-            <ClueOverlay style={styles.clueOverlay} clue={this.state.clue} cluesCompleted={this.state.cluesCompleted} />
+            <ClueOverlay style={styles.clueOverlay} 
+            clue={this.state.clue} 
+            cluesCompleted={this.state.cluesCompleted} 
+            allLength={this.state.allCluesCount} 
+            />
           }
         </View>
       );
@@ -170,7 +233,12 @@ const styles = StyleSheet.create({
     // alignItems: 'center',
     // justifyContent: 'center',
   },
-
+  listView: {
+    height: 100,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: '#d6d7da',
+  },
   mapView: {
     flex: 30
   },

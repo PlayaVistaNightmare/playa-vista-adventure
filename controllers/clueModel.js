@@ -3,7 +3,7 @@ import Expo, { SQLite } from 'expo';
 import __ from 'lodash'
 let data = {};
 
-const db = SQLite.openDatabase('projectDB10');
+const db = SQLite.openDatabase('projectDB19');
 
 data.addClue = (clue) => {
     return new Promise((resolve, reject) => {
@@ -62,14 +62,26 @@ data.setToComplete = (id) => {
     })
 }
 
+data.getCompleted = () => {
+    return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+            tx.executeSql(`SELECT * FROM clues WHERE completed = 1`, [],
+                (_, { rows: { _array } }) => {
+                    resolve(_array)
+                }, (_, err) => {
+                    reject(err)
+                })
+        })
+    })
+}
+
 data.getRandomIncompletedClue = () => {
     return new Promise((resolve, reject) => {
         db.transaction(tx => {
             tx.executeSql(`SELECT * FROM clues WHERE completed = 0`, [],
-                (_, { rows: { _array } }) => {
-                    const res = __.sample(_array)
-                    console.log('Selecting random clue...', res)
-                    resolve(res)
+                (_, res) => {
+                    let result = __.sample(res.rows._array)
+                    resolve(result)
                 }, (_, err) => {
                     reject(err)
                 })
@@ -128,7 +140,7 @@ data.populateCluesIfEmpty = () => {
     })
     .then(res => {
         const clue1 = {
-            description: 'Desc 1',
+            description: 'It\'s not a bootcamp!',
             long: -118.4222983,
             lat: 33.979500, 
             place_name: 'Codesmith HQ', 
@@ -138,7 +150,7 @@ data.populateCluesIfEmpty = () => {
     })
     .then(res => {
         const clue1 = {
-            description: 'Desc 2',
+            description: 'The "Best" Food Place',
             long: -118.4182312,
             lat: 33.9767221, 
             place_name: 'Whole Foods', 
@@ -146,16 +158,16 @@ data.populateCluesIfEmpty = () => {
         }
         return data.addClue(clue1)
     })
-    // .then(res => {
-    //     const clue1 = {
-    //         description: 'Desc 3',
-    //         long: -118.422547,
-    //         lat: 33.977925, 
-    //         place_name: '4hr zone', 
-    //         radius: 300
-    //     }
-    //     return data.addClue(clue1)
-    // })
+    .then(res => {
+        const clue1 = {
+            description: '$73 Penalty',
+            long: -118.422547,
+            lat: 33.977925, 
+            place_name: '4hr zone', 
+            radius: 300
+        }
+        return data.addClue(clue1)
+    })
     .then((res) => {
         return new Promise((resolve, reject) => {
         db.transaction(tx => {

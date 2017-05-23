@@ -5,8 +5,6 @@
   loc.degreesToRadians = degrees => degrees * (Math.PI / 180);
 
   loc.calculateDistanceInFeetBetweenCoordinates = (lat1, lon1, lat2, lon2) => {
-    console.log('in calcdisinftbtwncoord: ', lat1, lon1, lat2, lon2);
-    
     let earthRadiusFeet = 20903520;
     // let earthRadiusMeters = 6371e3;
     let dLat = loc.degreesToRadians(lat2 - lat1);
@@ -19,7 +17,6 @@
             Math.cos(rad1) * Math.cos(rad2) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
     let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    console.log('c: ',c);
     let distance = earthRadiusFeet * c;
     // let distance = earthRadiusMeters * c;
     return distance
