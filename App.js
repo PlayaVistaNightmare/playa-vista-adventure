@@ -5,7 +5,8 @@ import ClueDescription from './components/ClueDescription';
 import ClueOverlay from './components/ClueOverlay';
 import CheckInButton from './components/CheckInButton';
 import clue from './controllers/clueModel';
-import StartButton from './components/StartButton'
+import StartButton from './components/StartButton';
+import Loc from './util/locationUtil';
 
 export default class App extends React.Component {
   constructor(props) {
@@ -37,9 +38,7 @@ export default class App extends React.Component {
   _getLocationAsync = async () => {
     let { status } = await Permissions.askAsync(Permissions.LOCATION);
     if (status !== 'granted') {
-      this.setState({
-        errorMessage: 'Permission to access location was denied',
-      });
+      this.setState({ errorMessage: 'Permission to access location was denied',});
     }
 
     let location = await Location.getCurrentPositionAsync({});
@@ -53,22 +52,8 @@ export default class App extends React.Component {
       });
   };
 
-  _degreesToRadians = degrees => degrees * (Math.PI / 180);
-
   _distanceInFeetBetweenEarthCoordinates = (lat1, lon1, lat2, lon2) => {
-    let earthRadiusFeet = 20903520;
-
-    let dLat = this._degreesToRadians(lat2 - lat1);
-    let dLon = this._degreesToRadians(lon2 - lon1);
-
-    lat1 = this._degreesToRadians(lat1);
-    lat2 = this._degreesToRadians(lat2);
-
-    let a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
-    let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    let distance = earthRadiusFeet * c;
-    console.log(distance);
+    let distance = Loc.calculateDistanceInFeetBetweenCoordinates(lat1,lon1,lat2,lon2);
     this.setState({ distance });
     return distance;
   }
