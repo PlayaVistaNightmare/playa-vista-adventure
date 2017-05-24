@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, Text, View, StatusBar, AlertIOS, FlatList, Button } from 'react-native';
+import { Platform, StyleSheet, Text, View, StatusBar, AlertIOS, FlatList, Button, AsyncStorage } from 'react-native';
 import { MapView, Constants, Location, Permissions, SQLite } from 'expo';
 import ClueDescription from './components/ClueDescription';
 import ClueOverlay from './components/ClueOverlay';
@@ -35,7 +35,8 @@ export default class App extends React.Component {
       console.log('componentWillMount')
       this._getLocationAsync();
       this._watchPositionAsync();
-      
+      // AsyncStorage.clear()
+
       clue.populateCluesIfEmpty()
       .then(() => clue.getCompleted())
       .then(clues => {
@@ -73,21 +74,29 @@ export default class App extends React.Component {
     console.log('start pressed!');
     // start game, assign random clue to state
     console.log('start press')
-    
+    let clueChunk;
     clue.getRandomIncompletedClue()
-    .then((clue) => {
-      if (!clue) {
-        AlertIOS.alert('Finished!', 'You\'re done')
-        console.log('Game Finished!')
-      } else {
-        console.log('setting new clue', clue)
+    .then((randClue) => {
+      if (!randClue) {
+        AlertIOS.alert('Finished!......?', 'NOPE')
+        return clue.getChunk();
+        console.log('clueChunk in startpres: ', clueChunk);
+      } else{
+        return Promise.resolve(randClue);
+      }
+    })
+    .then((newClue) =>{ //get chunk may return false. handle this later
+      if(newClue){
+        console.log('setting new clue', newClue)
         this.setState({
           isGameStarted: true,
-          clue: clue.description,
-          clueId: clue.id,
-          clueLocation: {longitude: clue.long, latitude: clue.lat, radius: clue.radius},
-          currentClue: clue
+          clue: newClue.description,
+          clueId: newClue.id,
+          clueLocation: {longitude: newClue.long, latitude: newClue.lat, radius: newClue.radius},
+          currentClue: newClue
         })
+      } else {
+        AlertIOS.alert('Stop hitting start, you\'re DONE!');
       }
     })
   };
@@ -119,22 +128,29 @@ export default class App extends React.Component {
           this.setState(newState);
         return clue.getRandomIncompletedClue()
       })
-      .then((clue) => {
-        if (!clue) {
-          AlertIOS.alert('Finished!', 'You\'re done')
-        } else {
-          console.log('setting new clue', clue)
-          let newState = Object.assign({},this.state,{
-            clue: clue.description,
-            clueId: clue.id,
-            clueLocation: {longitude: clue.long, latitude: clue.lat, radius: clue.radius},
-            currentClue: clue
-          });
-          AlertIOS.alert('Good Job!', 'Keep searching...')
-          console.log('newState: ',newState);
-          this.setState(newState);
+      .then((randClue) => {
+        if (!randClue) {
+          AlertIOS.alert('Finished!......?', 'NOPE')
+          return clue.getChunk();
+          console.log('clueChunk in startpres: ', clueChunk);
+        } else{
+            return Promise.resolve(randClue);
         }
-        });
+      })
+      .then((newClue) =>{ //get chunk may return false. handle this later
+        if(newClue){
+          console.log('setting new clue', newClue)
+          this.setState({
+            isGameStarted: true,
+            clue: newClue.description,
+            clueId: newClue.id,
+            clueLocation: {longitude: newClue.long, latitude: newClue.lat, radius: newClue.radius},
+            currentClue: newClue
+          })
+        } else {
+          AlertIOS.alert('OK you\'re done.' );
+        }
+      });
     }
     else {
       AlertIOS.alert('Bitch move...', 'Not in correct location!')
@@ -199,9 +215,6 @@ export default class App extends React.Component {
           {
             this.state.isGameStarted &&
             <CheckInButton style={styles.checkInButton} checkIn={this._checkInPressed} />
-          }
-          {
-          
           }
 
           {
