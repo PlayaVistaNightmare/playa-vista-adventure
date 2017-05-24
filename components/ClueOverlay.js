@@ -21,19 +21,19 @@ class ClueOverlay extends Component {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#01579B'
+    backgroundColor: 'transparent'
   },
   clueDescription: {
     flex: 3,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#394249',
     fontSize: 20
     // fontFamily: 'Helvetica',
   },
   clueCompletion: {
     flex: 1,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#394249',
     textAlign: 'right',
     fontSize: 20
   }

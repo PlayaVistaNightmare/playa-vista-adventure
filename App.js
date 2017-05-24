@@ -153,7 +153,7 @@ export default class App extends React.Component {
       });
     }
     else {
-      AlertIOS.alert('Bitch move...', 'Not in correct location!')
+      AlertIOS.alert('No Fresh Meat Here!', 'Not in correct location!')
       console.log('not in correct location!');
     }
   };
@@ -176,14 +176,24 @@ export default class App extends React.Component {
           <Button
             onPress={this.toggleCluesList}
             title="Completed Clues"
-            color="#841584"
+            color="black"
           />
           {
               this.state.viewingClues && <FlatList 
               style={styles.listView} 
               data={this.state.cluesCompleted} 
               keyExtractor={item => item.id}
-              renderItem={({item}) => <Text>{item.place_name}: {item.description}</Text>} />
+              renderItem={({item}) => 
+                <Text style={{color: 'black', padding: 8, fontWeight: 'bold', textAlign:'left', borderBottomColor:'gray'}}>
+                  {item.place_name}: 
+                  <Text style={{color: 'black', padding: 8 ,fontWeight: '100', textAlign:'right'}}>
+                    {item.description}
+                  </Text>
+                </Text>
+                
+                
+                } 
+                />
           }
           {/*<Text>TEST ----></Text>
           <Text>USER LAT: {this.state.location.coords.latitude}</Text>
@@ -202,10 +212,17 @@ export default class App extends React.Component {
               longitudeDelta: 0.01//0.0421,
             }}
           >
+            <MapView.Marker
+              image = {require('./assets/zombie.png')}
+              coordinate={{
+                latitude: this.state.location.coords.latitude,
+                longitude: this.state.location.coords.longitude
+                }}
+            />
 
             <MapView.Circle
               radius={20}
-              fillColor={'#00F'}
+              fillColor={'red'}
               center={{
                 latitude: this.state.location.coords.latitude,
                 longitude: this.state.location.coords.longitude
@@ -221,7 +238,7 @@ export default class App extends React.Component {
             this.state.isGameStarted ?
               null :
               <StartButton
-                style={styles.startButton}
+                startstyle={styles.startView}
                 startGame={this._startPressed}
               />
           }
@@ -242,7 +259,7 @@ export default class App extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#000',
+    backgroundColor: 'transparent',
     // alignItems: 'center',
     // justifyContent: 'center',
   },
@@ -251,31 +268,36 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 0.5,
     borderColor: '#d6d7da',
+    backgroundColor: 'white'
   },
   mapView: {
-    flex: 30
+    flex: 30,
   },
-  startButton: {
-    // backgroundColor: 'red',
-    // width: 80,
-    // height: 80,
-    // position: 'absolute',
-    // bottom: 160,
-    // alignSelf: 'center'
+  startView: {
+    backgroundColor: 'black',
+    height: 600,
+    width: '100%',
+    position: 'absolute',
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   clueOverlay: {
     // flex: 1,
-    height: 32,
-    backgroundColor: '#01579B',
+    height: 72,
+    backgroundColor: '#a0d9de',
+    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center'
 
   },
   checkInButton: {
-    // color: 'green',
-    // backgroundColor: 'green',
-    height: 80,
-    width: 80,
-    position: 'absolute',
-    bottom: 40,
-    alignSelf: 'center'
+    // backgroundColor: 'red',
+    justifyContent: 'center',
+    alignItems: 'center',
+    bottom: 60,
+    alignSelf: 'center',
+    position: 'absolute'
+
   }
 });
