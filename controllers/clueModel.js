@@ -3,16 +3,18 @@ import Expo, { SQLite } from 'expo';
 import __ from 'lodash'
 let data = {};
 
-const db = SQLite.openDatabase('projectDB25');
+const db = SQLite.openDatabase('projectDB37');
 
 data.addClue = (clue) => {
     return new Promise((resolve, reject) => {
         db.transaction(tx => {
             tx.executeSql(`INSERT INTO clues (description, completed, long, lat, place_name, radius)
                 VALUES (?,?,?,?,?,?);`, [clue.description, false, clue.long, clue.lat, clue.place_name, clue.radius],
-                (_, { rows: { _array } }) => {
-                    console.log('addClue executed')
-                    resolve(_array)
+                (_, {insertId}) => {
+                    tx.executeSql(`SELECT * FROM clues WHERE id = ?`, [insertId], (_, { rows: { _array } }) => {
+                        console.log('addClue executed', _array)
+                        resolve(_array)
+                    })
                 }, (_, err) => {
                     reject(err)
                 })
@@ -138,26 +140,26 @@ data.populateCluesIfEmpty = () => {
             })
         }
     })
-        .then(res => {
-            const clue1 = {
-                description: 'It\'s not a bootcamp!',
-                long: -118.4222983,
-                lat: 33.979500,
-                place_name: 'Codesmith HQ',
-                radius: 300
-            }
-            return data.addClue(clue1)
-        })
-        .then(res => {
-            const clue1 = {
-                description: 'The "Best" Food Place',
-                long: -118.4182312,
-                lat: 33.9767221,
-                place_name: 'Whole Foods',
-                radius: 300
-            }
-            return data.addClue(clue1)
-        })
+        // .then(res => {
+        //     const clue1 = {
+        //         description: 'It\'s not a bootcamp!',
+        //         long: -118.4222983,
+        //         lat: 33.979500,
+        //         place_name: 'Codesmith HQ',
+        //         radius: 300
+        //     }
+        //     return data.addClue(clue1)
+        // })
+        // .then(res => {
+        //     const clue1 = {
+        //         description: 'The "Best" Food Place',
+        //         long: -118.4182312,
+        //         lat: 33.9767221,
+        //         place_name: 'Whole Foods',
+        //         radius: 300
+        //     }
+        //     return data.addClue(clue1)
+        // })
         .then(res => {
             const clue1 = {
                 description: '$73 Penalty',
@@ -203,17 +205,25 @@ data.getChunk = async () => {
         console.log('newClues: ',newClues); //getting back "Bad Chuck ID". should be getting back false.
         if(newClues){
             await AsyncStorage.setItem('lastChunk', chunkPlusTwo);//should not increment unless chunk exsists
-            let clueArray = newClues.map( clue =>{
-                let clueGoodFormat = {   
-                    description: clue.description,
-                    long: clue.long,
-                    lat: clue.lat,
-                    place_name: clue.place_name,
-                    radius: clue.radius
-                }
-                return data.addClue(clueGoodFormat)[0];
-            })
-            return Promise.resolve(clueArray[0]);
+            await data.addClue(newClues[0]);
+            let singleClue = await data.addClue(newClues[1]);
+            console.log('singleClue', singleClue)
+            return singleClue[0]
+            // let clueArray = newClues.map( clue =>{
+            //     let clueGoodFormat = {   
+            //         description: clue.description,
+            //         long: clue.long,
+            //         lat: clue.lat,
+            //         place_name: clue.place_name,
+            //         radius: clue.radius
+            //     }
+            //     return data.addClue(clueGoodFormat);
+            // })
+            // console.log('clueArrayclueArray', clueArray)
+            // return Promise.all(clueArray).then((res) => {
+            //     console.log('first of chunk: ', res);
+            //     return Promise.resolve(res[0]);
+            // })
         } else return newClues; 
 
     } catch (error) {
