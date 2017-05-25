@@ -7,6 +7,7 @@ import CheckInButton from './components/CheckInButton';
 import clue from './controllers/clueModel';
 import StartButton from './components/StartButton';
 import Loc from './util/locationUtil';
+import mapstyle from './assets/mapstyle';
 
 export default class App extends React.Component {
   constructor(props) {
@@ -91,7 +92,9 @@ export default class App extends React.Component {
         this.setState(newState);
         this._getNextClue();
       })
-      : AlertIOS.alert('Bitch move...', 'Not in correct location!');
+
+      : AlertIOS.alert('No Fresh Meat Here!', 'Not in correct location!');
+
   };
 
   toggleCluesList() {
@@ -113,18 +116,28 @@ export default class App extends React.Component {
           <Button
             onPress={this.toggleCluesList}
             title="Completed Clues"
-            color="#841584"
+            color="black"
           />
           {
-              this.state.viewingClues && 
-              <FlatList 
-                style={styles.listView} 
-                data={this.state.cluesCompleted} 
-                keyExtractor={item => item.id}
-                renderItem={({item}) => <Text>{item.place_name}: {item.description}</Text>} 
-              />
+
+              this.state.viewingClues && <FlatList 
+              style={styles.listView} 
+              data={this.state.cluesCompleted} 
+              keyExtractor={item => item.id}
+              renderItem={({item}) => 
+                <Text style={{color: 'black', padding: 8, fontWeight: 'bold', textAlign:'left', borderBottomColor:'gray'}}>
+                  {item.place_name}: 
+                  <Text style={{color: 'black', padding: 8 ,fontWeight: '100', textAlign:'right'}}>
+                    {item.description}
+                  </Text>
+                </Text>
+                
+                
+                } 
+                />
           }
           <MapView
+            customMapStyle = {mapstyle}
             style={styles.mapView}
             provider={'google'}
             region={{
@@ -134,9 +147,16 @@ export default class App extends React.Component {
               longitudeDelta: 0.01//0.0421,
             }}
           >
+            <MapView.Marker
+              image = {require('./assets/zombie.png')}
+              coordinate={{
+                latitude: this.state.location.coords.latitude,
+                longitude: this.state.location.coords.longitude
+                }}
+            />
             <MapView.Circle
               radius={20}
-              fillColor={'#00F'}
+              fillColor={'red'}
               center={{
                 latitude: this.state.userLocation.coords.latitude,
                 longitude: this.state.userLocation.coords.longitude
@@ -156,6 +176,7 @@ export default class App extends React.Component {
               style={styles.startButton}
               startGame={this._getNextClue}
             />
+
           }
           {
             this.state.isGameStarted &&
@@ -174,7 +195,7 @@ export default class App extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#000',
+    backgroundColor: '#a0d9de',
     // alignItems: 'center',
     // justifyContent: 'center',
   },
@@ -183,31 +204,36 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 0.5,
     borderColor: '#d6d7da',
+    backgroundColor: '#a0d9de'
   },
   mapView: {
-    flex: 30
+    flex: 30,
   },
-  startButton: {
-    // backgroundColor: 'red',
-    // width: 80,
-    // height: 80,
-    // position: 'absolute',
-    // bottom: 160,
-    // alignSelf: 'center'
+  startView: {
+    backgroundColor: 'black',
+    height: 600,
+    width: '100%',
+    position: 'absolute',
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   clueOverlay: {
     // flex: 1,
-    height: 32,
-    backgroundColor: '#01579B',
+    height: 72,
+    backgroundColor: '#a0d9de',
+    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center'
 
   },
   checkInButton: {
-    // color: 'green',
-    // backgroundColor: 'green',
-    height: 80,
-    width: 80,
-    position: 'absolute',
-    bottom: 40,
-    alignSelf: 'center'
+    // backgroundColor: 'red',
+    justifyContent: 'center',
+    alignItems: 'center',
+    bottom: 60,
+    alignSelf: 'center',
+    position: 'absolute'
+
   }
 });
