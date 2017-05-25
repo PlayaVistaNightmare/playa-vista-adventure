@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, Text, View, StatusBar, AlertIOS, FlatList, Button, AsyncStorage } from 'react-native';
+import { AsynStorage, Platform, StyleSheet, Text, View, StatusBar, AlertIOS, FlatList, Button, AsyncStorage } from 'react-native';
 import { MapView, Constants, Location, Permissions, SQLite } from 'expo';
 import ClueDescription from './components/ClueDescription';
 import ClueOverlay from './components/ClueOverlay';
@@ -30,6 +30,7 @@ export default class App extends React.Component {
         errorMessage: 'Oops, this will not work on Sketch in an Android emulator. Try it on your device!',
       });
     } else {
+      // AsyncStorage.clear()
       this._getLocationAsync();
       this._watchPositionAsync();
       clue.populateCluesIfEmpty()
@@ -66,18 +67,23 @@ export default class App extends React.Component {
   _getNextClue = () => {
     clue.getRandomIncompletedClue()
     .then( randClue => randClue ? Promise.resolve(randClue) : clue.getChunk() )
-    .then( newClue =>{ 
-      newClue ?
+    .then( newClue =>{
+      console.log('_getNextClue_getNextClue', newClue)
+      if (newClue) {
         this.setState({
           isGameStarted: true,
           currentClue: newClue
+        }, () => {console.log('clueLocation', this.state.currentClue.long, this.state.currentClue.lat);})
+        clue.getAllClues().then(res => {
+          this.setState({allCluesCount: res.length})
         })
-        : AlertIOS.alert('OK Actually finished');  
+      } else {
+         AlertIOS.alert('OK Actually finished');  
+      }
     })
   }
 
   _checkInPressed = () => {
-    console.log('clueLocation', this.state.currentClue.long, this.state.currentClue.lat);
     this._getLocationAsync();
     let distToClue = Loc.calculateDistance( this.state.userLocation.coords, this.state.currentClue.lat, this.state.currentClue.long );
     distToClue <= this.state.currentClue.radius ?
@@ -150,8 +156,8 @@ export default class App extends React.Component {
             <MapView.Marker
               image = {require('./assets/zombie.png')}
               coordinate={{
-                latitude: this.state.location.coords.latitude,
-                longitude: this.state.location.coords.longitude
+                latitude: this.state.userLocation.coords.latitude,
+                longitude: this.state.userLocation.coords.longitude
                 }}
             />
             <MapView.Circle
@@ -173,7 +179,7 @@ export default class App extends React.Component {
           {
             !this.state.isGameStarted &&
             <StartButton
-              style={styles.startButton}
+              startstyle={styles.startView}
               startGame={this._getNextClue}
             />
 
@@ -200,7 +206,7 @@ const styles = StyleSheet.create({
     // justifyContent: 'center',
   },
   listView: {
-    height: 300,
+    height: 100,
     borderRadius: 4,
     borderWidth: 0.5,
     borderColor: '#d6d7da',
