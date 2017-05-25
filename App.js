@@ -13,17 +13,14 @@ export default class App extends React.Component {
     super(props);
     this.state = {
       isGameStarted: false,
-      clue: null,
-      clueId: null,
-      clueLocation: null, //long, lat, radius
-      location: null,
-      errorMessage: null,
-      distance: 0,//prop dont need
-      cluesCompleted: [],
       viewingClues: false,
-      allCluesCount: 0
+      userLocation: null,
+      currentClue: null,
+      cluesCompleted: [],
+      allCluesCount: 0,
+      errorMessage: null,
     }
-    this.toggleCluesList = this.toggleCluesList.bind(this)
+    this.toggleCluesList = this.toggleCluesList.bind(this);
   }
 
   componentWillMount() {
@@ -32,19 +29,15 @@ export default class App extends React.Component {
         errorMessage: 'Oops, this will not work on Sketch in an Android emulator. Try it on your device!',
       });
     } else {
-      console.log('componentWillMount')
       this._getLocationAsync();
       this._watchPositionAsync();
-      // AsyncStorage.clear()
-
       clue.populateCluesIfEmpty()
       .then(() => clue.getCompleted())
       .then(clues => {
           this.setState(Object.assign({}, this.state, {cluesCompleted: [
-            ...this.state.cluesCompleted,
+            ...this.state.cluesCompleted,//may not need this?
             ...clues
           ]}))
-          console.log('Init state: ',this.state)
           return clue.getAllClues()
         })
         .then((res) => {
@@ -58,104 +51,47 @@ export default class App extends React.Component {
     if (status !== 'granted') {
       this.setState({ errorMessage: 'Permission to access location was denied',});
     }
-
-    let location = await Location.getCurrentPositionAsync({});
-    this.setState({ location });
+    let userLocation = await Location.getCurrentPositionAsync({});
+    this.setState({ userLocation });
   };
 
   _watchPositionAsync = async () => {
     await Location.watchPositionAsync({ enableHighAccuracy: true, distanceInterval: 4 },
-      (location) => {
-        this.setState({ location });
+      (userLocation) => {
+        this.setState({ userLocation });
       });
   };
 
-  _startPressed = () => {
-    console.log('start pressed!');
-    // start game, assign random clue to state
-    console.log('start press')
-    let clueChunk;
+  _getNextClue = () => {
     clue.getRandomIncompletedClue()
-    .then((randClue) => {
-      if (!randClue) {
-        AlertIOS.alert('Finished!......?', 'NOPE')
-        return clue.getChunk();
-        console.log('clueChunk in startpres: ', clueChunk);
-      } else{
-        return Promise.resolve(randClue);
-      }
-    })
-    .then((newClue) =>{ //get chunk may return false. handle this later
-      if(newClue){
-        console.log('setting new clue', newClue)
+    .then( randClue => randClue ? Promise.resolve(randClue) : clue.getChunk() )
+    .then( newClue =>{ 
+      newClue ?
         this.setState({
           isGameStarted: true,
-          clue: newClue.description,
-          clueId: newClue.id,
-          clueLocation: {longitude: newClue.long, latitude: newClue.lat, radius: newClue.radius},
           currentClue: newClue
         })
-      } else {
-        AlertIOS.alert('Stop hitting start, you\'re DONE!');
-      }
+        : AlertIOS.alert('OK Actually finished');  
     })
-  };
+  }
 
   _checkInPressed = () => {
-    console.log('check in pressed!');
+    console.log('clueLocation', this.state.currentClue.long, this.state.currentClue.lat);
     this._getLocationAsync();
-    let distToClue = Loc.calculateDistanceInFeetBetweenCoordinates(
-      this.state.location.coords.latitude,
-      this.state.location.coords.longitude,
-      this.state.clueLocation.latitude,
-      this.state.clueLocation.longitude);
-    console.log('location: ', this.state.location);
-    console.log('clueLocation', this.state.clueLocation);
-    console.log('distToClue: ',distToClue);
-    console.log('radius: ',this.state.clueLocation.radius);
-
-    if (distToClue <= this.state.clueLocation.radius) {
-      console.log('completing clueId: ', this.state.clueId)
-      clue.setToComplete(this.state.clueId)
-      .then(()=>{ //can refactor later to NOT have .then in .then
-          console.log()
-          let newState = Object.assign({},this.state,{
-            cluesCompleted: [
-              ...this.state.cluesCompleted,
-              this.state.currentClue
-            ]
-          });
-          this.setState(newState);
-        return clue.getRandomIncompletedClue()
+    let distToClue = Loc.calculateDistance( this.state.userLocation.coords, this.state.currentClue.lat, this.state.currentClue.long );
+    distToClue <= this.state.currentClue.radius ?
+      clue.setToComplete(this.state.currentClue.id)
+      .then(()=>{ 
+        let newState = Object.assign({},this.state,{
+          cluesCompleted: [
+          ...this.state.cluesCompleted,
+          this.state.currentClue
+          ]
+        });
+        this.setState(newState);
+        this._getNextClue();
       })
-      .then((randClue) => {
-        if (!randClue) {
-          AlertIOS.alert('Finished!......?', 'NOPE')
-          return clue.getChunk();
-          console.log('clueChunk in startpres: ', clueChunk);
-        } else{
-            return Promise.resolve(randClue);
-        }
-      })
-      .then((newClue) =>{ //get chunk may return false. handle this later
-        if(newClue){
-          console.log('setting new clue', newClue)
-          this.setState({
-            isGameStarted: true,
-            clue: newClue.description,
-            clueId: newClue.id,
-            clueLocation: {longitude: newClue.long, latitude: newClue.lat, radius: newClue.radius},
-            currentClue: newClue
-          })
-        } else {
-          AlertIOS.alert('OK you\'re done.' );
-        }
-      });
-    }
-    else {
-      AlertIOS.alert('Bitch move...', 'Not in correct location!')
-      console.log('not in correct location!');
-    }
+      : AlertIOS.alert('Bitch move...', 'Not in correct location!');
   };
 
   toggleCluesList() {
@@ -165,12 +101,13 @@ export default class App extends React.Component {
   }
 
   render() {
-    if (this.state.location == null) {
-      return (<View style={styles.container} />);
+    if (this.state.userLocation === null) {
+      return (
+        <View style={styles.container} />
+      );
     }
     else {
       return (
-
         <View style={styles.container}>
           <StatusBar hidden />
           <Button
@@ -179,58 +116,53 @@ export default class App extends React.Component {
             color="#841584"
           />
           {
-              this.state.viewingClues && <FlatList 
-              style={styles.listView} 
-              data={this.state.cluesCompleted} 
-              keyExtractor={item => item.id}
-              renderItem={({item}) => <Text>{item.place_name}: {item.description}</Text>} />
+              this.state.viewingClues && 
+              <FlatList 
+                style={styles.listView} 
+                data={this.state.cluesCompleted} 
+                keyExtractor={item => item.id}
+                renderItem={({item}) => <Text>{item.place_name}: {item.description}</Text>} 
+              />
           }
-          {/*<Text>TEST ----></Text>
-          <Text>USER LAT: {this.state.location.coords.latitude}</Text>
-          <Text>USER LONG: {this.state.location.coords.longitude}</Text>
-          <Text>CLUE LAT: {this.state.clueLocation ? this.state.clueLocation.latitude : ''}</Text>
-          <Text>CLUE LONG: {this.state.clueLocation ? this.state.clueLocation.longitude : ''}</Text>
-                    <Text>DISTANCE: { this.state.distance }</Text>*/}
-
           <MapView
             style={styles.mapView}
             provider={'google'}
             region={{
-              latitude: this.state.location.coords.latitude,
-              longitude: this.state.location.coords.longitude,
+              latitude: this.state.userLocation.coords.latitude,
+              longitude: this.state.userLocation.coords.longitude,
               latitudeDelta: 0,//0.0922,
               longitudeDelta: 0.01//0.0421,
             }}
           >
-
             <MapView.Circle
               radius={20}
               fillColor={'#00F'}
               center={{
-                latitude: this.state.location.coords.latitude,
-                longitude: this.state.location.coords.longitude
+                latitude: this.state.userLocation.coords.latitude,
+                longitude: this.state.userLocation.coords.longitude
               }}
             />
           </MapView>
           {
             this.state.isGameStarted &&
-            <CheckInButton style={styles.checkInButton} checkIn={this._checkInPressed} />
+            <CheckInButton 
+              style={styles.checkInButton} 
+              checkIn={this._checkInPressed} 
+            />
           }
-
           {
-            this.state.isGameStarted ?
-              null :
-              <StartButton
-                style={styles.startButton}
-                startGame={this._startPressed}
-              />
+            !this.state.isGameStarted &&
+            <StartButton
+              style={styles.startButton}
+              startGame={this._getNextClue}
+            />
           }
           {
             this.state.isGameStarted &&
             <ClueOverlay style={styles.clueOverlay} 
-            clue={this.state.clue} 
-            cluesCompleted={this.state.cluesCompleted} 
-            allLength={this.state.allCluesCount} 
+              clue={this.state.currentClue.description} 
+              cluesCompleted={this.state.cluesCompleted} 
+              allLength={this.state.allCluesCount} 
             />
           }
         </View>
@@ -247,7 +179,7 @@ const styles = StyleSheet.create({
     // justifyContent: 'center',
   },
   listView: {
-    height: 100,
+    height: 300,
     borderRadius: 4,
     borderWidth: 0.5,
     borderColor: '#d6d7da',

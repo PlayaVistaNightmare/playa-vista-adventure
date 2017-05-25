@@ -3,7 +3,7 @@ import Expo, { SQLite } from 'expo';
 import __ from 'lodash'
 let data = {};
 
-const db = SQLite.openDatabase('projectDB22');
+const db = SQLite.openDatabase('projectDB25');
 
 data.addClue = (clue) => {
     return new Promise((resolve, reject) => {
@@ -197,13 +197,13 @@ data.getChunk = async () => {
         // await AsyncStorage.clear()
         const chunkId = await AsyncStorage.getItem('lastChunk') || '-2';
         const chunkPlusTwo = JSON.stringify(JSON.parse(chunkId)+2);
-        await AsyncStorage.setItem('lastChunk', chunkPlusTwo);
-        console.log('chunkId->', chunkId)
-        const newClues = await fetch('http://192.168.0.45:3000/api/clue/' + chunkPlusTwo)
-        .then((res) => res.json())
-        console.log('newClues->',newClues)
+        const newClues = await fetch('http://192.168.0.101:3000/api/clue/' + chunkPlusTwo)
+        .then(res => res.json())
+
+        console.log('newClues: ',newClues); //getting back "Bad Chuck ID". should be getting back false.
         if(newClues){
-            let clueArray = newClues.map((clue)=>{
+            await AsyncStorage.setItem('lastChunk', chunkPlusTwo);//should not increment unless chunk exsists
+            let clueArray = newClues.map( clue =>{
                 let clueGoodFormat = {   
                     description: clue.description,
                     long: clue.long,
@@ -215,7 +215,7 @@ data.getChunk = async () => {
             })
             return Promise.resolve(clueArray[0]);
         } else return newClues; 
-        // .then((result) => console.log('chunk result->',result))
+
     } catch (error) {
         console.log('error->',error.message)
     }
