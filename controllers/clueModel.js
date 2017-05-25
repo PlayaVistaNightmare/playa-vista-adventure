@@ -3,7 +3,7 @@ import Expo, { SQLite } from 'expo';
 import __ from 'lodash'
 let data = {};
 
-const db = SQLite.openDatabase('projectDB23');
+const db = SQLite.openDatabase('projectDB24');
 
 data.addClue = (clue) => {
     return new Promise((resolve, reject) => {
