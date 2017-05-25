@@ -15,7 +15,7 @@ class StartButton extends Component {
         <Button
           onPress={this.props.startGame}
           title="START AT YOUR OWN PERIL"
-          color="#99c7b7"
+          color="black"
         />
      </View>
     );

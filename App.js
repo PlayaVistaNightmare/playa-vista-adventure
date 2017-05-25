@@ -7,6 +7,7 @@ import CheckInButton from './components/CheckInButton';
 import clue from './controllers/clueModel';
 import StartButton from './components/StartButton';
 import Loc from './util/locationUtil';
+import mapstyle from './assets/mapstyle';
 
 export default class App extends React.Component {
   constructor(props) {
@@ -203,6 +204,7 @@ export default class App extends React.Component {
                     <Text>DISTANCE: { this.state.distance }</Text>*/}
 
           <MapView
+            customMapStyle = {mapstyle}
             style={styles.mapView}
             provider={'google'}
             region={{
@@ -259,7 +261,7 @@ export default class App extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#a0d9de',
     // alignItems: 'center',
     // justifyContent: 'center',
   },
@@ -268,7 +270,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 0.5,
     borderColor: '#d6d7da',
-    backgroundColor: 'white'
+    backgroundColor: '#a0d9de'
   },
   mapView: {
     flex: 30,
